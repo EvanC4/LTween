@@ -232,6 +232,27 @@ ULTweener* ULTweenBPLibrary::LocalPositionZTo(USceneComponent* target, double en
 	}
 	return Tweener;
 }
+ULTweener* ULTweenBPLibrary::Actor_LocalPositionZTo(AActor* target, double endValue, float duration, float delay, ELTweenEase ease)
+{
+	if (!IsValid(target))
+	{
+		UE_LOG(LTween, Error, TEXT("[ULTweenBPLibrary::LocalPositionZTo] target is not valid:%s"), *(target->GetPathName()));
+		return nullptr;
+	}
+	auto Tweener = ULTweenManager::To(target, FLTweenDoubleGetterFunction::CreateWeakLambda(target, [target] 
+	{
+		return target->GetActorLocation().Z;
+	}), FLTweenDoubleSetterFunction::CreateWeakLambda(target, [=](auto value) {
+		auto location = target->GetActorLocation();
+		location.Z = value;
+		target->SetActorLocation(location);
+	}), endValue, duration);
+	if (Tweener)
+	{
+		Tweener->SetDelay(delay)->SetEase(ease);
+	}
+	return Tweener;
+}
 ULTweener* ULTweenBPLibrary::LocalPositionXTo_Sweep(USceneComponent* target, double endValue, FHitResult& sweepHitResult, bool sweep, bool teleport, float duration, float delay, ELTweenEase ease)
 {
 	if (!IsValid(target))
