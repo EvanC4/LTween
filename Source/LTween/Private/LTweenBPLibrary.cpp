@@ -232,27 +232,6 @@ ULTweener* ULTweenBPLibrary::LocalPositionZTo(USceneComponent* target, double en
 	}
 	return Tweener;
 }
-ULTweener* ULTweenBPLibrary::Actor_LocalPositionZTo(AActor* target, double endValue, float duration, float delay, ELTweenEase ease)
-{
-	if (!IsValid(target))
-	{
-		UE_LOG(LTween, Error, TEXT("[ULTweenBPLibrary::LocalPositionZTo] target is not valid:%s"), *(target->GetPathName()));
-		return nullptr;
-	}
-	auto Tweener = ULTweenManager::To(target, FLTweenDoubleGetterFunction::CreateWeakLambda(target, [target] 
-	{
-		return target->GetActorLocation().Z;
-	}), FLTweenDoubleSetterFunction::CreateWeakLambda(target, [=](auto value) {
-		auto location = target->GetActorLocation();
-		location.Z = value;
-		target->SetActorLocation(location);
-	}), endValue, duration);
-	if (Tweener)
-	{
-		Tweener->SetDelay(delay)->SetEase(ease);
-	}
-	return Tweener;
-}
 ULTweener* ULTweenBPLibrary::LocalPositionXTo_Sweep(USceneComponent* target, double endValue, FHitResult& sweepHitResult, bool sweep, bool teleport, float duration, float delay, ELTweenEase ease)
 {
 	if (!IsValid(target))
@@ -460,7 +439,7 @@ ULTweener* ULTweenBPLibrary::LocalPositionTo(USceneComponent* target, FVector en
 	}
 	auto Tweener = ULTweenManager::To(target
 	, FLTweenPositionGetterFunction::CreateUObject(target, &USceneComponent::GetRelativeLocation)
-	, FLTweenPositionSetterFunction::CreateUObject(target, &USceneComponent::SetRelativeLocation)
+	, FLTweenPositionSetterFunction::CreateWeakLambda(target, [target](const FVector& location, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport) { target->SetRelativeLocation(location, bSweep, OutSweepHitResult, Teleport); })
 	, endValue, duration);
 	if (Tweener)
 	{
@@ -477,7 +456,7 @@ ULTweener* ULTweenBPLibrary::WorldPositionTo(USceneComponent* target, FVector en
 	}
 	auto Tweener = ULTweenManager::To(target
 	, FLTweenPositionGetterFunction::CreateUObject(target, &USceneComponent::GetComponentLocation)
-	, FLTweenPositionSetterFunction::CreateUObject(target, &USceneComponent::SetWorldLocation)
+	, FLTweenPositionSetterFunction::CreateWeakLambda(target, [target](const FVector& location, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport) { target->SetWorldLocation(location, bSweep, OutSweepHitResult, Teleport); })
 	, endValue, duration);
 	if (Tweener)
 	{
@@ -494,7 +473,7 @@ ULTweener* ULTweenBPLibrary::LocalPositionTo_Sweep(USceneComponent* target, FVec
 	}
 	auto Tweener = ULTweenManager::To(target
 	, FLTweenVectorGetterFunction::CreateUObject(target, &USceneComponent::GetRelativeLocation)
-	, FLTweenPositionSetterFunction::CreateUObject(target, &USceneComponent::SetRelativeLocation)
+	, FLTweenPositionSetterFunction::CreateWeakLambda(target, [target](const FVector& location, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport) { target->SetRelativeLocation(location, bSweep, OutSweepHitResult, Teleport); })
 	, endValue, duration, sweep, sweep ? &sweepHitResult : nullptr, TeleportFlagToEnum(teleport));
 	if (Tweener)
 	{
@@ -511,7 +490,7 @@ ULTweener* ULTweenBPLibrary::WorldPositionTo_Sweep(USceneComponent* target, FVec
 	}
 	auto Tweener = ULTweenManager::To(target
 	, FLTweenPositionGetterFunction::CreateUObject(target, &USceneComponent::GetComponentLocation)
-	, FLTweenPositionSetterFunction::CreateUObject(target, &USceneComponent::SetRelativeLocation)
+	, FLTweenPositionSetterFunction::CreateWeakLambda(target, [target](const FVector& location, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport) { target->SetRelativeLocation(location, bSweep, OutSweepHitResult, Teleport); })
 	, endValue, duration, sweep, sweep ? &sweepHitResult : nullptr, TeleportFlagToEnum(teleport));
 	if (Tweener)
 	{
@@ -1237,6 +1216,55 @@ ULTweener* ULTweenBPLibrary::UMG_Border_ContentColorAndOpacityTo(UObject* WorldC
 	if (Tweener)
 	{
 		Tweener->SetDelay(delay)->SetEase(ease)->SetAffectByGamePause(false)->SetAffectByTimeDilation(false);
+	}
+	return Tweener;
+}
+#pragma endregion
+#pragma region Actor
+
+void AActorLocationSet(AActor* target, FVector& location)
+{
+	target->SetActorLocation(location);
+}
+
+ULTweener* ULTweenBPLibrary::Actor_PositionZTo(AActor* target, double endValue, float duration, float delay, ELTweenEase ease)
+{
+	if (!IsValid(target))
+	{
+		UE_LOG(LTween, Error, TEXT("[ULTweenBPLibrary::LocalPositionZTo] target is not valid:%s"), *(target->GetPathName()));
+		return nullptr;
+	}
+	auto Tweener = ULTweenManager::To(
+		target,
+		FLTweenDoubleGetterFunction::CreateWeakLambda(target, [target]{ return target->GetActorLocation().Z; }),
+		FLTweenDoubleSetterFunction::CreateWeakLambda(target, [target](double value) {
+			auto location = target->GetActorLocation();
+			location.Z = value;
+			target->SetActorLocation(location);
+		}),
+		endValue,
+		duration
+	);
+	if (Tweener)
+	{
+		Tweener->SetDelay(delay)->SetEase(ease);
+	}
+	return Tweener;
+}
+ULTweener* ULTweenBPLibrary::Actor_PositionTo(AActor* target, FVector endValue, float duration, float delay, ELTweenEase ease)
+{
+	if (!IsValid(target))
+	{
+		UE_LOG(LTween, Error, TEXT("[ULTweenBPLibrary::LocalPositionTo] target is not valid:%s"), *(target->GetPathName()));
+		return nullptr;
+	}
+	auto Tweener = ULTweenManager::To(target
+	, FLTweenPositionGetterFunction::CreateUObject(target, &AActor::GetActorLocation)
+	, FLTweenPositionSetterFunction::CreateWeakLambda(target, [target](const FVector& location, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport) { target->SetActorLocation(location, bSweep, OutSweepHitResult, Teleport); })
+	, endValue, duration);
+	if (Tweener)
+	{
+		Tweener->SetDelay(delay)->SetEase(ease);
 	}
 	return Tweener;
 }
