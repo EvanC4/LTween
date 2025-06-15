@@ -174,6 +174,7 @@ void ULTweenManager::Tick(ELTweenTickType TickType, float DeltaTime)
 }
 
 #include "Kismet/GameplayStatics.h"
+#include "Engine/GameInstance.h"
 ULTweenManager* ULTweenManager::GetLTweenInstance(UObject* WorldContextObject)
 {
 	if (auto GameInstance = UGameplayStatics::GetGameInstance(WorldContextObject))
