@@ -122,6 +122,7 @@ bool ULTweenTickHelperWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) cons
 }
 void ULTweenTickHelperWorldSubsystem::PostInitialize()
 {
+	Super::PostInitialize();
 	if (auto World = GetWorld())
 	{
 		if (World->IsGameWorld())
